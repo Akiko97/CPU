@@ -18,4 +18,8 @@ fn main() {
     registers.set_bit("zmm", 1, 0, true);
     registers.set_bit("zmm", 1, 511, true);
     println!("{:?}", registers.get_sections::<u64>("zmm", 1));
+
+    println!("{:?}", registers.get_sections::<u32>("xmm", 2));
+    println!("{}", registers.set_by_sections("xmm", 2, vec![2147483648u32, 2147483648u32, 2147483648u32, 2147483648u32]));
+    println!("{:?}", registers.get_sections::<u32>("xmm", 2));
 }

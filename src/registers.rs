@@ -24,23 +24,11 @@ impl SIMDRegister {
         self.bits[position]
     }
 
-    // fn get_32bit_sections(&self) -> Vec<u32> {
-    //     let mut sections = Vec::new();
-    //     for i in (0..self.bits.len()).step_by(32) {
-    //         let mut section_value: u32 = 0;
-    //         for j in 0..32 {
-    //             if self.bits[i + j] {
-    //                 section_value |= 1 << j;
-    //             }
-    //         }
-    //         sections.push(section_value);
-    //     }
-    //     sections
-    // }
-
     fn get_sections<T>(&self) -> Vec<T>
         where
-            T: From<u8> + std::ops::Shl<usize, Output = T> + std::ops::BitOr<Output = T> + Copy,
+            T: From<u8> + Copy + Eq +
+            std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
+            std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>,
     {
         let mut sections = Vec::new();
         let type_bits = std::mem::size_of::<T>() * 8;
@@ -57,6 +45,31 @@ impl SIMDRegister {
             sections.push(section_value);
         }
         sections
+    }
+
+    fn set_by_sections<T>(&mut self, sections: Vec<T>) -> bool
+        where
+            T: From<u8> + Copy + Eq +
+            std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
+            std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>,
+    {
+        let type_bits = std::mem::size_of::<T>() * 8;
+        if type_bits * sections.len() != self.bits.len() {
+            return false;
+        }
+        let mut i = 0;
+        for section in &sections {
+            for j in 0..type_bits {
+                if i + j >= self.bits.len() {
+                    break;
+                }
+                if (*section >> j) & T::from(1u8) == T::from(1u8) {
+                    self.set_bit(i + j, true);
+                }
+            }
+            i += type_bits;
+        }
+        true
     }
 }
 
@@ -116,7 +129,9 @@ impl Registers {
 
     pub fn get_sections<T>(&self, reg_type: &str, reg_index: usize) -> Option<Vec<T>>
         where
-            T: From<u8> + std::ops::Shl<usize, Output = T> + std::ops::BitOr<Output = T> + Copy,
+            T: From<u8> + Copy + Eq +
+            std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
+            std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>,
     {
         let sections: Vec<T> = self.simd_registers[reg_index].get_sections();
         match reg_type {
@@ -136,6 +151,47 @@ impl Registers {
                 Some(slice.to_vec())
             }
             _ => None,
+        }
+    }
+
+    pub fn set_by_sections<T>(&mut self, reg_type: &str, reg_index: usize, sections: Vec<T>) -> bool
+        where
+            T: From<u8> + Copy + Eq +
+            std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
+            std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>,
+    {
+        let type_bits = std::mem::size_of::<T>() * 8;
+        let register_bits = type_bits * sections.len();
+        let fill_sections = (512 - register_bits) / type_bits;
+        match reg_type {
+            "xmm" => {
+                if register_bits != 128 {
+                    return false;
+                }
+                let mut fill = sections;
+                fill.extend(std::iter::repeat(T::from(0u8)).take(fill_sections));
+                self.simd_registers[reg_index].set_by_sections(fill);
+                true
+            }
+            "ymm" => {
+                if register_bits != 256 {
+                    return false;
+                }
+                let mut fill = sections;
+                fill.extend(std::iter::repeat(T::from(0u8)).take(fill_sections));
+                self.simd_registers[reg_index].set_by_sections(fill);
+                true
+            }
+            "zmm" => {
+                if register_bits != 512 {
+                    return false;
+                }
+                let mut fill = sections;
+                fill.extend(std::iter::repeat(T::from(0u8)).take(fill_sections));
+                self.simd_registers[reg_index].set_by_sections(fill);
+                true
+            }
+            _ => false,
         }
     }
 }
