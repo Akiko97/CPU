@@ -1,6 +1,18 @@
 extern crate bit_vec;
 use bit_vec::BitVec;
 
+// trait alias
+trait SectionCompatible:
+    From<u8> + Copy + Eq +
+    std::ops::Shl<usize, Output = Self> + std::ops::Shr<usize, Output = Self> +
+    std::ops::BitOr<Output = Self> + std::ops::BitAnd<Output = Self>
+{}
+impl<T:
+    From<u8> + Copy + Eq +
+    std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
+    std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>> SectionCompatible for T
+{}
+
 struct SIMDRegister {
     bits: BitVec,
 }
@@ -24,12 +36,7 @@ impl SIMDRegister {
         self.bits[position]
     }
 
-    fn get_sections<T>(&self) -> Vec<T>
-        where
-            T: From<u8> + Copy + Eq +
-            std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
-            std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>,
-    {
+    fn get_sections<T: SectionCompatible>(&self) -> Vec<T> {
         let mut sections = Vec::new();
         let type_bits = std::mem::size_of::<T>() * 8;
         for i in (0..self.bits.len()).step_by(type_bits) {
@@ -47,12 +54,7 @@ impl SIMDRegister {
         sections
     }
 
-    fn set_by_sections<T>(&mut self, sections: Vec<T>) -> bool
-        where
-            T: From<u8> + Copy + Eq +
-            std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
-            std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>,
-    {
+    fn set_by_sections<T: SectionCompatible>(&mut self, sections: Vec<T>) -> bool {
         let type_bits = std::mem::size_of::<T>() * 8;
         if type_bits * sections.len() != self.bits.len() {
             return false;
@@ -127,12 +129,7 @@ impl Registers {
         }
     }
 
-    pub fn get_sections<T>(&self, reg_type: &str, reg_index: usize) -> Option<Vec<T>>
-        where
-            T: From<u8> + Copy + Eq +
-            std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
-            std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>,
-    {
+    pub fn get_sections<T: SectionCompatible>(&self, reg_type: &str, reg_index: usize) -> Option<Vec<T>> {
         let sections: Vec<T> = self.simd_registers[reg_index].get_sections();
         match reg_type {
             "xmm" => {
@@ -154,12 +151,7 @@ impl Registers {
         }
     }
 
-    pub fn set_by_sections<T>(&mut self, reg_type: &str, reg_index: usize, sections: Vec<T>) -> bool
-        where
-            T: From<u8> + Copy + Eq +
-            std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
-            std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>,
-    {
+    pub fn set_by_sections<T: SectionCompatible>(&mut self, reg_type: &str, reg_index: usize, sections: Vec<T>) -> bool {
         let type_bits = std::mem::size_of::<T>() * 8;
         let register_bits = type_bits * sections.len();
         let fill_sections = (512 - register_bits) / type_bits;
