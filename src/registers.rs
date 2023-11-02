@@ -1,24 +1,45 @@
 extern crate bit_vec;
 use bit_vec::BitVec;
 
-// trait alias
+// trait alias and enum
 trait SectionCompatible:
     From<u8> + Copy + Eq +
     std::ops::Shl<usize, Output = Self> + std::ops::Shr<usize, Output = Self> +
     std::ops::BitOr<Output = Self> + std::ops::BitAnd<Output = Self>
 {}
+
 impl<T:
     From<u8> + Copy + Eq +
     std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> +
     std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>> SectionCompatible for T
 {}
 
+pub enum GPRName {
+    // 64-bit registers
+    RAX, RBX, RCX, RDX, RSI, RDI, RBP, RSP,
+    R8, R9, R10, R11, R12, R13, R14, R15,
+    // 32-bit registers
+    EAX, EBX, ECX, EDX, ESI, EDI, EBP, ESP,
+    R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D,
+    // 16-bit registers
+    AX, BX, CX, DX, SI, DI, BP, SP,
+    R8W, R9W, R10W, R11W, R12W, R13W, R14W, R15W,
+    // 8-bit registers
+    AH, BH, CH, DH, AL, BL, CL, DL, SIL, DIL, BPL, SPL,
+    R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B
+}
+
 struct SIMDRegister {
     bits: BitVec,
 }
 
+struct GPR {
+    value: u64,
+}
+
 pub struct Registers {
     simd_registers: [SIMDRegister; 16],
+    gpr: [GPR; 16],
 }
 
 impl SIMDRegister {
@@ -75,26 +96,47 @@ impl SIMDRegister {
     }
 }
 
+impl GPR {
+    fn new() -> Self {
+        GPR {
+            value: 0,
+        }
+    }
+
+    fn set_value(&mut self, val: u64) {
+        self.value = val;
+    }
+
+    fn get_value(&self) -> u64 {
+        self.value
+    }
+}
+
+impl Clone for GPR {
+    fn clone(&self) -> Self {
+        GPR {
+            value: self.value
+        }
+    }
+}
+
+impl Copy for GPR {}
+
 impl Registers {
     pub fn new() -> Self {
         Registers {
             simd_registers: [
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
-                SIMDRegister::new(512),
+                SIMDRegister::new(512), SIMDRegister::new(512),
+                SIMDRegister::new(512), SIMDRegister::new(512),
+                SIMDRegister::new(512), SIMDRegister::new(512),
+                SIMDRegister::new(512), SIMDRegister::new(512),
+                SIMDRegister::new(512), SIMDRegister::new(512),
+                SIMDRegister::new(512), SIMDRegister::new(512),
+                SIMDRegister::new(512), SIMDRegister::new(512),
+                SIMDRegister::new(512), SIMDRegister::new(512),
+            ],
+            gpr: [
+                GPR::new(); 16
             ],
         }
     }
@@ -184,6 +226,50 @@ impl Registers {
                 true
             }
             _ => false,
+        }
+    }
+
+    pub fn set_gpr_value(&mut self, reg_name: GPRName, value: u64) {
+        match reg_name {
+            GPRName::EAX => {
+                self.gpr[GPRName::RAX as usize].value = (self.gpr[GPRName::RAX as usize].value & 0xFFFFFFFF_00000000) | (value & 0x00000000_FFFFFFFF);
+            }
+            GPRName::AX => {
+                self.gpr[GPRName::RAX as usize].value = (self.gpr[GPRName::RAX as usize].value & 0xFFFFFFFF_FFFF0000) | (value & 0x00000000_0000FFFF);
+            }
+            GPRName::AL => {
+                self.gpr[GPRName::RAX as usize].value = (self.gpr[GPRName::RAX as usize].value & 0xFFFFFFFF_FFFFFF00) | (value & 0x00000000_000000FF);
+            }
+            GPRName::AH => {
+                self.gpr[GPRName::RAX as usize].value = (self.gpr[GPRName::RAX as usize].value & 0xFFFFFFFF_FFFF00FF) | ((value << 8) & 0x00000000_0000FF00);
+            }
+            // TODO: add other registers
+            _ => {
+                let index = reg_name as usize;
+                self.gpr[index].set_value(value);
+            }
+        }
+    }
+
+    pub fn get_gpr_value(&self, reg_name: GPRName) -> u64 {
+        match reg_name {
+            GPRName::EAX => {
+                self.gpr[GPRName::RAX as usize].value & 0x00000000_FFFFFFFF
+            }
+            GPRName::AX => {
+                self.gpr[GPRName::RAX as usize].value & 0x00000000_0000FFFF
+            }
+            GPRName::AL => {
+                self.gpr[GPRName::RAX as usize].value & 0x00000000_000000FF
+            }
+            GPRName::AH => {
+                (self.gpr[GPRName::RAX as usize].value & 0x00000000_0000FF00) >> 8
+            }
+            // TODO: add other registers
+            _ => {
+                let index = reg_name as usize;
+                self.gpr[index].get_value()
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 mod registers;
 use registers::Registers;
+use registers::GPRName;
 
 fn main() {
     let mut registers = Registers::new();
@@ -22,4 +23,10 @@ fn main() {
     println!("{:?}", registers.get_sections::<u32>("xmm", 2));
     println!("{}", registers.set_by_sections("xmm", 2, vec![2147483648u32, 2147483648u32, 2147483648u32, 2147483648u32]));
     println!("{:?}", registers.get_sections::<u32>("xmm", 2));
+
+    println!("{}", registers.get_gpr_value(GPRName::RAX));
+    registers.set_gpr_value(GPRName::RAX, 18446744073709486080u64);
+    println!("{}", registers.get_gpr_value(GPRName::RAX));
+    registers.set_gpr_value(GPRName::EAX, 65535u64);
+    println!("{}", registers.get_gpr_value(GPRName::RAX)); // 18446744069414649855
 }
