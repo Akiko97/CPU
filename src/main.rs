@@ -27,6 +27,8 @@ fn main() {
     println!("{}", registers.get_gpr_value(GPRName::RAX));
     registers.set_gpr_value(GPRName::RAX, 18446744073709486080u64);
     println!("{}", registers.get_gpr_value(GPRName::RAX));
+    registers.set_gpr_value(GPRName::AL, 255u64);
+    println!("{}", registers.get_gpr_value(GPRName::RAX));
     registers.set_gpr_value(GPRName::EAX, 65535u64);
-    println!("{}", registers.get_gpr_value(GPRName::RAX)); // 18446744069414649855
+    println!("{}", registers.get_gpr_value(GPRName::RAX));
 }
