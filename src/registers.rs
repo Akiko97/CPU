@@ -29,6 +29,24 @@ pub enum GPRName {
     R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B
 }
 
+pub enum FLAGSName {
+    // 64-bit registers
+    RFLAGS,
+    // 32-bit registers
+    EFLAGS,
+    // 16-bit registers
+    FLAGS
+}
+
+pub enum IPName {
+    // 64-bit registers
+    RIP,
+    // 32-bit registers
+    EIP,
+    // 16-bit registers
+    IP
+}
+
 struct SIMDRegister {
     bits: BitVec,
 }
@@ -40,6 +58,8 @@ struct GPR {
 pub struct Registers {
     simd_registers: [SIMDRegister; 16],
     gpr: [GPR; 16],
+    rflags: u64,
+    rip: u64,
 }
 
 impl SIMDRegister {
@@ -138,6 +158,8 @@ impl Registers {
             gpr: [
                 GPR::new(); 16
             ],
+            rflags: 0u64,
+            rip: 0u64,
         }
     }
 
@@ -232,7 +254,7 @@ impl Registers {
     pub fn set_gpr_value(&mut self, reg_name: GPRName, value: u64) {
         match reg_name {
             GPRName::EAX => {
-                self.gpr[GPRName::RAX as usize].value = (self.gpr[GPRName::RAX as usize].value & 0xFFFFFFFF_00000000) | (value & 0x00000000_FFFFFFFF);
+                self.gpr[GPRName::RAX as usize].value = value & 0x00000000_FFFFFFFF;
             }
             GPRName::AX => {
                 self.gpr[GPRName::RAX as usize].value = (self.gpr[GPRName::RAX as usize].value & 0xFFFFFFFF_FFFF0000) | (value & 0x00000000_0000FFFF);
@@ -269,6 +291,62 @@ impl Registers {
             _ => {
                 let index = reg_name as usize;
                 self.gpr[index].get_value()
+            }
+        }
+    }
+
+    pub fn set_flags_value(&mut self, reg_name: FLAGSName, value: u64) {
+        match reg_name {
+            FLAGSName::RFLAGS => {
+                self.rflags = value;
+            },
+            FLAGSName::EFLAGS => {
+                self.rflags = (self.rflags & 0xFFFFFFFF_00000000) | (value & 0x00000000_FFFFFFFF);
+            },
+            FLAGSName::FLAGS => {
+                self.rflags = (self.rflags & 0xFFFFFFFF_FFFF0000) | (value & 0x00000000_0000FFFF);
+            }
+        }
+    }
+
+    pub fn get_flags_value(&self, reg_name: FLAGSName) -> u64 {
+        match reg_name {
+            FLAGSName::RFLAGS => {
+                self.rflags
+            },
+            FLAGSName::EFLAGS => {
+                self.rflags & 0x00000000_FFFFFFFF
+            },
+            FLAGSName::FLAGS => {
+                self.rflags & 0x00000000_0000FFFF
+            }
+        }
+    }
+
+    pub fn set_ip_value(&mut self, reg_name: IPName, value: u64) {
+        match reg_name {
+            IPName::RIP => {
+                self.rip = value;
+            },
+            IPName::EIP => {
+                self.rip = value & 0x00000000_FFFFFFFF;
+            },
+            IPName::IP => {
+                self.rip = value & 0x00000000_0000FFFF;
+            }
+        }
+    }
+
+    pub fn get_ip_value(&self, reg_name: IPName) -> u64 {
+        match reg_name {
+            IPName::RIP => {
+                self.rip
+            },
+            IPName::EIP => {
+                self.rip & 0x00000000_FFFFFFFF
+            },
+            IPName::IP => {
+                self.rip & 0x00000000_0000FFFF
             }
         }
     }
