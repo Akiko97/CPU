@@ -1,50 +1,3 @@
-// extern crate bit_vec;
-// use bit_vec::BitVec;
-//
-// pub struct Memory {
-//     bits: BitVec,
-//     size: usize,
-//     base_address: usize,
-// }
-//
-// impl Memory {
-//     pub fn new(size: usize, base_address: usize) -> Self {
-//         Memory {
-//             bits: BitVec::from_elem(size * 8, false),
-//             size,
-//             base_address,
-//         }
-//     }
-//
-//     pub fn read_byte(&self, address: usize) -> Option<u8> {
-//         let adjusted_address = address.wrapping_sub(self.base_address);
-//         if adjusted_address < self.size {
-//             let mut byte = 0u8;
-//             for i in 0..8 {
-//                 if self.bits[adjusted_address * 8 + i] {
-//                     byte |= 1 << i;
-//                 }
-//             }
-//             Some(byte)
-//         } else {
-//             None
-//         }
-//     }
-//
-//     pub fn write_byte(&mut self, address: usize, value: u8) -> bool {
-//         let adjusted_address = address.wrapping_sub(self.base_address);
-//         if adjusted_address < self.size {
-//             for i in 0..8 {
-//                 let bit = (value >> i) & 1;
-//                 self.bits.set(adjusted_address * 8 + i, bit == 1);
-//             }
-//             true
-//         } else {
-//             false
-//         }
-//     }
-// }
-
 const DEFAULT_SIZE: usize = 512; // 512 bytes
 
 struct MemorySegment {
@@ -74,7 +27,7 @@ impl Memory {
         None
     }
 
-    pub fn read(&self, address: usize) -> u8 {
+    pub fn read_byte(&self, address: usize) -> u8 {
         let real_address = address - self.base_address;
         if let Some(index) = self.find_segment(real_address) {
             self.segments[index].data[real_address - self.segments[index].start_address]
@@ -84,7 +37,7 @@ impl Memory {
         }
     }
 
-    pub fn write(&mut self, address: usize, value: u8) {
+    pub fn write_byte(&mut self, address: usize, value: u8) {
         let real_address = address - self.base_address;
         if let Some(index) = self.find_segment(real_address) {
             let start = self.segments[index].start_address;

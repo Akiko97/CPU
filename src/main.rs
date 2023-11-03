@@ -40,9 +40,9 @@ fn main() {
 
     let mut memory = Memory::new(0x40000000);
 
-    println!("{}", memory.read(0x40000000));
-    memory.write(0x40000000, 0xFF);
-    println!("{}", memory.read(0x40000000));
-    memory.write(0x40000200, 0xFF);
-    println!("{}", memory.read(0x40000200));
+    println!("{}", memory.read_byte(0x40000000));
+    memory.write_byte(0x40000000, 0xFF);
+    println!("{}", memory.read_byte(0x40000000));
+    memory.write_byte(0x40000200, 0xFF);
+    println!("{}", memory.read_byte(0x40000200));
 }
