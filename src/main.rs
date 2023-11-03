@@ -1,6 +1,12 @@
 mod registers;
+mod memory;
+
 use registers::Registers;
 use registers::GPRName;
+use registers::FLAGSName;
+use registers::IPName;
+
+use memory::Memory;
 
 fn main() {
     let mut registers = Registers::new();
@@ -31,4 +37,12 @@ fn main() {
     println!("{}", registers.get_gpr_value(GPRName::RAX));
     registers.set_gpr_value(GPRName::EAX, 65535u64);
     println!("{}", registers.get_gpr_value(GPRName::RAX));
+
+    let mut memory = Memory::new(0x40000000);
+
+    println!("{}", memory.read(0x40000000));
+    memory.write(0x40000000, 0xFF);
+    println!("{}", memory.read(0x40000000));
+    memory.write(0x40000200, 0xFF);
+    println!("{}", memory.read(0x40000200));
 }
