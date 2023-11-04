@@ -4,6 +4,7 @@ use primitive_types::U512 as u512;
 
 mod registers;
 mod memory;
+mod utilities;
 
 use registers::Registers;
 use registers::GPRName;
@@ -11,6 +12,8 @@ use registers::FLAGSName;
 use registers::IPName;
 
 use memory::Memory;
+
+use utilities::Utilities;
 
 fn main() {
     let mut registers = Registers::new();
@@ -60,4 +63,13 @@ fn test(registers: &mut Registers, memory: &mut Memory) {
     println!("{:?}", registers.get_sections::<u256>("zmm", 3));
     println!("{}", registers.set_by_sections("zmm", 5, vec![u512::from(1)]));
     println!("{:?}", registers.get_sections::<u512>("zmm", 5));
+
+    println!("{}", registers.set_by_sections("xmm", 6, Utilities::f32vec_to_u32vec(vec![1.0f32, 2.0f32, 3.0f32, 4.0f32])));
+    println!("{:?}", if let Some(u32vec) = registers.get_sections::<u32>("xmm", 6) {
+        Some(Utilities::u32vec_to_f32vec(u32vec))
+    } else { None });
+    println!("{}", registers.set_by_sections("xmm", 7, Utilities::f64vec_to_u64vec(vec![1.0f64, 2.0f64])));
+    println!("{:?}", if let Some(u64vec) = registers.get_sections::<u64>("xmm", 7) {
+        Some(Utilities::u64vec_to_f64vec(u64vec))
+    } else { None });
 }
