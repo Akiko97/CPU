@@ -10,7 +10,12 @@ use memory::Memory;
 
 fn main() {
     let mut registers = Registers::new();
+    let mut memory = Memory::new(0x40000000);
 
+    test(&mut registers, &mut memory);
+}
+
+fn test(registers: &mut Registers, memory: &mut Memory) {
     registers.set_bit("xmm", 0, 127, true);
     println!("{:?}", registers.get_bit("xmm", 0, 127));
     println!("{:?}", registers.get_bit("ymm", 0, 127));
@@ -38,11 +43,12 @@ fn main() {
     registers.set_gpr_value(GPRName::EAX, 65535u64);
     println!("{}", registers.get_gpr_value(GPRName::RAX));
 
-    let mut memory = Memory::new(0x40000000);
-
     println!("{}", memory.read_byte(0x40000000));
     memory.write_byte(0x40000000, 0xFF);
     println!("{}", memory.read_byte(0x40000000));
+    memory.write_byte(0x40000201, 0xFF);
+    println!("{}", memory.read_byte(0x40000201));
+    println!("{}", memory.read_byte(0x40000200));
     memory.write_byte(0x40000200, 0xFF);
     println!("{}", memory.read_byte(0x40000200));
 }

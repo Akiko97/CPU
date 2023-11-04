@@ -43,11 +43,12 @@ impl Memory {
             let start = self.segments[index].start_address;
             self.segments[index].data[real_address - start] = value;
         } else {
+            let adjusted_address = (real_address / DEFAULT_SIZE) * DEFAULT_SIZE;
             let mut new_data = Vec::with_capacity(DEFAULT_SIZE);
             new_data.resize(DEFAULT_SIZE, 0);
-            new_data[0] = value;
+            new_data[real_address - adjusted_address] = value;
             let new_segment = MemorySegment {
-                start_address: real_address,
+                start_address: adjusted_address,
                 data: new_data,
             };
             self.segments.push(new_segment);
