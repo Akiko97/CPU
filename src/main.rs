@@ -7,6 +7,7 @@ mod memory;
 mod utilities;
 
 use registers::Registers;
+use registers::VecRegName;
 use registers::GPRName;
 use registers::FLAGSName;
 use registers::IPName;
@@ -23,24 +24,24 @@ fn main() {
 }
 
 fn test(registers: &mut Registers, memory: &mut Memory) {
-    registers.set_bit("xmm", 0, 127, true);
-    println!("{:?}", registers.get_bit("xmm", 0, 127));
-    println!("{:?}", registers.get_bit("ymm", 0, 127));
-    println!("{:?}", registers.get_bit("zmm", 0, 127));
+    registers.set_bit(VecRegName::XMM, 0, 127, true);
+    println!("{:?}", registers.get_bit(VecRegName::XMM, 0, 127));
+    println!("{:?}", registers.get_bit(VecRegName::YMM, 0, 127));
+    println!("{:?}", registers.get_bit(VecRegName::ZMM, 0, 127));
 
-    registers.set_bit("ymm", 0, 255, true);
-    println!("{:?}", registers.get_bit("ymm", 0, 255));
+    registers.set_bit(VecRegName::YMM, 0, 255, true);
+    println!("{:?}", registers.get_bit(VecRegName::YMM, 0, 255));
 
-    registers.set_bit("zmm", 0, 511, true);
-    println!("{:?}", registers.get_bit("zmm", 0, 511));
+    registers.set_bit(VecRegName::ZMM, 0, 511, true);
+    println!("{:?}", registers.get_bit(VecRegName::ZMM, 0, 511));
 
-    registers.set_bit("zmm", 1, 0, true);
-    registers.set_bit("zmm", 1, 511, true);
-    println!("{:?}", registers.get_sections::<u64>("zmm", 1));
+    registers.set_bit(VecRegName::ZMM, 1, 0, true);
+    registers.set_bit(VecRegName::ZMM, 1, 511, true);
+    println!("{:?}", registers.get_sections::<u64>(VecRegName::ZMM, 1));
 
-    println!("{:?}", registers.get_sections::<u32>("xmm", 2));
-    println!("{}", registers.set_by_sections("xmm", 2, vec![2147483648u32, 2147483648u32, 2147483648u32, 2147483648u32]));
-    println!("{:?}", registers.get_sections::<u32>("xmm", 2));
+    println!("{:?}", registers.get_sections::<u32>(VecRegName::XMM, 2));
+    println!("{}", registers.set_by_sections(VecRegName::XMM, 2, vec![2147483648u32, 2147483648u32, 2147483648u32, 2147483648u32]));
+    println!("{:?}", registers.get_sections::<u32>(VecRegName::XMM, 2));
 
     println!("{}", registers.get_gpr_value(GPRName::RAX));
     registers.set_gpr_value(GPRName::RAX, 18446744073709486080u64);
@@ -59,17 +60,17 @@ fn test(registers: &mut Registers, memory: &mut Memory) {
     memory.write_byte(0x40000200, 0xFF);
     println!("{}", memory.read_byte(0x40000200));
 
-    println!("{}", registers.set_by_sections("zmm", 3, vec![u256::from(1), u256::from(2)]));
-    println!("{:?}", registers.get_sections::<u256>("zmm", 3));
-    println!("{}", registers.set_by_sections("zmm", 5, vec![u512::from(1)]));
-    println!("{:?}", registers.get_sections::<u512>("zmm", 5));
+    println!("{}", registers.set_by_sections(VecRegName::ZMM, 3, vec![u256::from(1), u256::from(2)]));
+    println!("{:?}", registers.get_sections::<u256>(VecRegName::ZMM, 3));
+    println!("{}", registers.set_by_sections(VecRegName::ZMM, 5, vec![u512::from(1)]));
+    println!("{:?}", registers.get_sections::<u512>(VecRegName::ZMM, 5));
 
-    println!("{}", registers.set_by_sections("xmm", 6, Utilities::f32vec_to_u32vec(vec![1.0f32, 2.0f32, 3.0f32, 4.0f32])));
-    println!("{:?}", if let Some(u32vec) = registers.get_sections::<u32>("xmm", 6) {
+    println!("{}", registers.set_by_sections(VecRegName::XMM, 6, Utilities::f32vec_to_u32vec(vec![1.0f32, 2.0f32, 3.0f32, 4.0f32])));
+    println!("{:?}", if let Some(u32vec) = registers.get_sections::<u32>(VecRegName::XMM, 6) {
         Some(Utilities::u32vec_to_f32vec(u32vec))
     } else { None });
-    println!("{}", registers.set_by_sections("xmm", 7, Utilities::f64vec_to_u64vec(vec![1.0f64, 2.0f64])));
-    println!("{:?}", if let Some(u64vec) = registers.get_sections::<u64>("xmm", 7) {
+    println!("{}", registers.set_by_sections(VecRegName::XMM, 7, Utilities::f64vec_to_u64vec(vec![1.0f64, 2.0f64])));
+    println!("{:?}", if let Some(u64vec) = registers.get_sections::<u64>(VecRegName::XMM, 7) {
         Some(Utilities::u64vec_to_f64vec(u64vec))
     } else { None });
 }

@@ -14,6 +14,10 @@ impl<T:
     std::ops::BitOr<Output = T> + std::ops::BitAnd<Output = T>> SectionCompatible for T
 {}
 
+pub enum VecRegName {
+    XMM, YMM, ZMM
+}
+
 pub enum GPRName {
     // 64-bit registers
     RAX, RBX, RCX, RDX, RSI, RDI, RBP, RSP,
@@ -163,64 +167,63 @@ impl Registers {
         }
     }
 
-    pub fn set_bit(&mut self, reg_type: &str, reg_index: usize, bit_position: usize, value: bool) {
+    pub fn set_bit(&mut self, reg_type: VecRegName, reg_index: usize, bit_position: usize, value: bool) {
         match reg_type {
-            "xmm" if bit_position < 128 => {
+            VecRegName::XMM if bit_position < 128 => {
                 self.simd_registers[reg_index].set_bit(bit_position, value);
             }
-            "ymm" if bit_position < 256 => {
+            VecRegName::YMM if bit_position < 256 => {
                 self.simd_registers[reg_index].set_bit(bit_position, value);
             }
-            "zmm" if bit_position < 512 => {
+            VecRegName::ZMM if bit_position < 512 => {
                 self.simd_registers[reg_index].set_bit(bit_position, value);
             }
             _ => eprintln!("Invalid register type or bit position"),
         }
     }
 
-    pub fn get_bit(&self, reg_type: &str, reg_index: usize, bit_position: usize) -> Option<bool> {
+    pub fn get_bit(&self, reg_type: VecRegName, reg_index: usize, bit_position: usize) -> Option<bool> {
         match reg_type {
-            "xmm" if bit_position < 128 => {
+            VecRegName::XMM if bit_position < 128 => {
                 Some(self.simd_registers[reg_index].get_bit(bit_position))
             }
-            "ymm" if bit_position < 256 => {
+            VecRegName::YMM if bit_position < 256 => {
                 Some(self.simd_registers[reg_index].get_bit(bit_position))
             }
-            "zmm" if bit_position < 512 => {
+            VecRegName::ZMM if bit_position < 512 => {
                 Some(self.simd_registers[reg_index].get_bit(bit_position))
             }
             _ => None,
         }
     }
 
-    pub fn get_sections<T: SectionCompatible>(&self, reg_type: &str, reg_index: usize) -> Option<Vec<T>> {
+    pub fn get_sections<T: SectionCompatible>(&self, reg_type: VecRegName, reg_index: usize) -> Option<Vec<T>> {
         let sections: Vec<T> = self.simd_registers[reg_index].get_sections();
         match reg_type {
-            "xmm" => {
+            VecRegName::XMM => {
                 let n = 128 / (std::mem::size_of::<T>() * 8);
                 let slice = &sections[..n];
                 Some(slice.to_vec())
             }
-            "ymm" => {
+            VecRegName::YMM => {
                 let n = 256 / (std::mem::size_of::<T>() * 8);
                 let slice = &sections[..n];
                 Some(slice.to_vec())
             }
-            "zmm" => {
+            VecRegName::ZMM => {
                 let n = 512 / (std::mem::size_of::<T>() * 8);
                 let slice = &sections[..n];
                 Some(slice.to_vec())
             }
-            _ => None,
         }
     }
 
-    pub fn set_by_sections<T: SectionCompatible>(&mut self, reg_type: &str, reg_index: usize, sections: Vec<T>) -> bool {
+    pub fn set_by_sections<T: SectionCompatible>(&mut self, reg_type: VecRegName, reg_index: usize, sections: Vec<T>) -> bool {
         let type_bits = std::mem::size_of::<T>() * 8;
         let register_bits = type_bits * sections.len();
         let fill_sections = (512 - register_bits) / type_bits;
         match reg_type {
-            "xmm" => {
+            VecRegName::XMM => {
                 if register_bits != 128 {
                     return false;
                 }
@@ -229,7 +232,7 @@ impl Registers {
                 self.simd_registers[reg_index].set_by_sections(fill);
                 true
             }
-            "ymm" => {
+            VecRegName::YMM => {
                 if register_bits != 256 {
                     return false;
                 }
@@ -238,7 +241,7 @@ impl Registers {
                 self.simd_registers[reg_index].set_by_sections(fill);
                 true
             }
-            "zmm" => {
+            VecRegName::ZMM => {
                 if register_bits != 512 {
                     return false;
                 }
@@ -247,7 +250,6 @@ impl Registers {
                 self.simd_registers[reg_index].set_by_sections(fill);
                 true
             }
-            _ => false,
         }
     }
 
