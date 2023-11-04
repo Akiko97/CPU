@@ -1,3 +1,7 @@
+extern crate primitive_types;
+use primitive_types::U256 as u256;
+use primitive_types::U512 as u512;
+
 mod registers;
 mod memory;
 
@@ -51,4 +55,9 @@ fn test(registers: &mut Registers, memory: &mut Memory) {
     println!("{}", memory.read_byte(0x40000200));
     memory.write_byte(0x40000200, 0xFF);
     println!("{}", memory.read_byte(0x40000200));
+
+    println!("{}", registers.set_by_sections("zmm", 3, vec![u256::from(1), u256::from(2)]));
+    println!("{:?}", registers.get_sections::<u256>("zmm", 3));
+    println!("{}", registers.set_by_sections("zmm", 5, vec![u512::from(1)]));
+    println!("{:?}", registers.get_sections::<u512>("zmm", 5));
 }
