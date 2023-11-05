@@ -5,6 +5,7 @@ use primitive_types::U512 as u512;
 mod registers;
 mod memory;
 mod utilities;
+mod instructions;
 
 use registers::Registers;
 use registers::VecRegName;
@@ -51,15 +52,6 @@ fn test(registers: &mut Registers, memory: &mut Memory) {
     registers.set_gpr_value(GPRName::EAX, 65535u64);
     println!("{}", registers.get_gpr_value(GPRName::RAX));
 
-    println!("{}", memory.read_byte(0x40000000));
-    memory.write_byte(0x40000000, 0xFF);
-    println!("{}", memory.read_byte(0x40000000));
-    memory.write_byte(0x40000201, 0xFF);
-    println!("{}", memory.read_byte(0x40000201));
-    println!("{}", memory.read_byte(0x40000200));
-    memory.write_byte(0x40000200, 0xFF);
-    println!("{}", memory.read_byte(0x40000200));
-
     println!("{}", registers.set_by_sections(VecRegName::ZMM, 3, vec![u256::from(1), u256::from(2)]));
     println!("{:?}", registers.get_sections::<u256>(VecRegName::ZMM, 3));
     println!("{}", registers.set_by_sections(VecRegName::ZMM, 5, vec![u512::from(1)]));
@@ -73,4 +65,24 @@ fn test(registers: &mut Registers, memory: &mut Memory) {
     println!("{:?}", if let Some(u64vec) = registers.get_sections::<u64>(VecRegName::XMM, 7) {
         Some(Utilities::u64vec_to_f64vec(u64vec))
     } else { None });
+
+    println!("0x{:X}", memory.read::<u8>(0x40000000));
+    memory.write::<u8>(0x40000000, 0x12);
+    println!("0x{:X}", memory.read::<u8>(0x40000000));
+    memory.write::<u16>(0x40000000, 0x1234);
+    println!("0x{:X}", memory.read::<u16>(0x40000000));
+    memory.write::<u32>(0x40000000, 0x12345678);
+    println!("0x{:X}", memory.read::<u32>(0x40000000));
+    memory.write::<u64>(0x40000000, 0x1234567887654321);
+    println!("0x{:X}", memory.read::<u64>(0x40000000));
+    memory.write::<u128>(0x40000000, 0x12345678876543211234567887654321);
+    println!("0x{:X}", memory.read::<u128>(0x40000000));
+    memory.write::<u256>(0x40000000, u256::from(0x12345678876543211234567887654321u128));
+    println!("0x{:X}", memory.read::<u256>(0x40000000));
+    memory.write::<u512>(0x40000000, u512::from(0x12345678876543211234567887654321u128));
+    println!("0x{:X}", memory.read::<u512>(0x40000000));
+    memory.write_vec::<u64>(0x40000000, vec![
+        0, 1, 2, 3, 4, 5, 6, 7,
+    ]);
+    println!("{:?}", memory.read_vec::<u32>(0x40000000, 16));
 }
