@@ -1,5 +1,7 @@
 extern crate bit_vec;
 use bit_vec::BitVec;
+extern crate regex;
+use regex::Regex;
 
 // trait alias and enum
 trait SectionCompatible:
@@ -51,6 +53,17 @@ pub enum IPName {
     IP
 }
 
+fn extract_values(s: &str) -> Option<(usize, usize)> {
+    let re = Regex::new(r"\[(.*?):(.*?)\]").unwrap();
+    re.captures(s).map(|cap| {
+        let a_str = cap.get(1).map_or("", |m| m.as_str());
+        let b_str = cap.get(2).map_or("", |m| m.as_str());
+        let a_value = if a_str == "MAX" { 511 } else { a_str.parse::<usize>().unwrap_or(0) };
+        let b_value = if b_str == "MAX" { 511 } else { b_str.parse::<usize>().unwrap_or(0) };
+        (a_value, b_value)
+    })
+}
+
 struct SIMDRegister {
     bits: BitVec,
 }
@@ -79,6 +92,12 @@ impl SIMDRegister {
 
     fn get_bit(&self, position: usize) -> bool {
         self.bits[position]
+    }
+
+    fn clear(&mut self) {
+        for i in 0..self.bits.len() {
+            self.set_bit(i, false);
+        }
     }
 
     fn get_sections<T: SectionCompatible>(&self) -> Vec<T> {
@@ -117,6 +136,41 @@ impl SIMDRegister {
             i += type_bits;
         }
         true
+    }
+
+    fn get_by_index<T: SectionCompatible>(&self, start_index: usize, end_index: usize) -> T {
+        let size = end_index - start_index + 1;
+        let type_bits = std::mem::size_of::<T>() * 8;
+        if type_bits < size {
+            panic!("Invalid T size for getting value from {} to {}", start_index, end_index);
+        }
+        let mut value: T = T::from(0u8);
+        for i in start_index..=end_index {
+            if i >= self.bits.len() {
+                break;
+            }
+            if self.bits[i] {
+                value = value | (T::from(1u8) << (i - start_index));
+            }
+        }
+        value
+    }
+
+    fn set_by_index<T: SectionCompatible>(&mut self, start_index: usize, end_index: usize, value: T) {
+        let size = end_index - start_index + 1;
+        let type_bits = std::mem::size_of::<T>() * 8;
+        for i in start_index..=end_index {
+            if i >= self.bits.len() {
+                break;
+            }
+            if i - start_index >= type_bits {
+                self.set_bit(i, false);
+            } else if (value >> (i - start_index)) & T::from(1u8) == T::from(1u8) {
+                self.set_bit(i, true);
+            } else {
+                self.set_bit(i, false);
+            }
+        }
     }
 }
 
@@ -197,7 +251,11 @@ impl Registers {
         }
     }
 
-    pub fn get_sections<T: SectionCompatible>(&self, reg_type: VecRegName, reg_index: usize) -> Option<Vec<T>> {
+    pub fn clear(&mut self, reg_index: usize) {
+        self.simd_registers[reg_index].clear();
+    }
+
+    pub fn get_by_sections<T: SectionCompatible>(&self, reg_type: VecRegName, reg_index: usize) -> Option<Vec<T>> {
         let sections: Vec<T> = self.simd_registers[reg_index].get_sections();
         match reg_type {
             VecRegName::XMM => {
@@ -250,6 +308,23 @@ impl Registers {
                 self.simd_registers[reg_index].set_by_sections(fill);
                 true
             }
+        }
+    }
+
+    pub fn get_by_selector<T: SectionCompatible>(&self, _reg_type: VecRegName, reg_index: usize, selector: &str) -> Option<T> {
+        if let Some((a, b)) = extract_values(selector) {
+            Some(self.simd_registers[reg_index].get_by_index(b, a))
+        } else {
+            None
+        }
+    }
+
+    pub fn set_by_selector<T: SectionCompatible>(&mut self, _reg_type: VecRegName, reg_index: usize, selector: &str, value: T) -> bool {
+        if let Some((a, b)) = extract_values(selector) {
+            self.simd_registers[reg_index].set_by_index(b, a, value);
+            true
+        } else {
+            false
         }
     }
 
